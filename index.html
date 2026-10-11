@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SmartMove AI - Real Google Maps Navigation</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+:root{--bg:#ffffff;--card:#f8f9fa;--tx:#1b1b1b;--mu:#6b6b6b;--ac:#1d6fdc;--ao:#ffffff}
+body{font:14px/1.45 Sora,system-ui,sans-serif;background:var(--bg);color:var(--tx);height:100dvh;display:flex;flex-direction:column;transition:background .3s,color .3s}
+header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid color-mix(in srgb,var(--tx) 14%,transparent)}
+header b{font-size:17px;font-weight:800;letter-spacing:-.4px}
+#dots{display:flex;gap:7px}.dot{width:22px;height:22px;border-radius:50%;border:3px solid;cursor:pointer;padding:0}.dot.on{outline:2px solid var(--tx);outline-offset:2px}
+main{flex:1;display:grid;grid-template-columns:400px 1fr;min-height:0}
+#side{overflow:auto;padding:12px;background:var(--bg)}#mapw{position:relative;min-height:0}#map{position:absolute;inset:0;background:var(--card)}
+#mt{position:absolute;left:10px;bottom:10px;z-index:500;background:var(--card);padding:5px 12px;border-radius:99px;font-size:11px;color:var(--tx);box-shadow:0 2px 8px rgba(0,0,0,0.15);display:flex;gap:8px;align-items:center}
+#mt select{margin:0;padding:2px 6px;font-size:11px;border-radius:6px;width:auto;background:var(--bg);color:var(--tx);border:1px solid color-mix(in srgb,var(--tx) 15%,transparent)}
+body.dk .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
+.pin{font-size:22px;text-align:center;filter:drop-shadow(0 1px 2px #0008)}
+#tabs{display:flex;gap:6px;margin-bottom:12px}#tabs button{flex:1;padding:8px 0;border:0;border-radius:10px;background:var(--card);color:var(--mu);font:inherit;font-weight:600;cursor:pointer}#tabs button.on{background:var(--ac);color:var(--ao)}
+.pg{display:none}.pg.on{display:block}
+.box{background:var(--card);border-radius:14px;padding:12px;margin-bottom:10px}
+h3{font-size:14px;margin-bottom:8px}p.s{color:var(--mu);font-size:12.5px}
+input,select{width:100%;padding:10px;border-radius:10px;border:1px solid color-mix(in srgb,var(--tx) 18%,transparent);background:var(--bg);color:var(--tx);font:inherit;margin-bottom:8px}
+.row{display:flex;gap:8px}.row>*{flex:1}.row .sm{flex:0 0 46px}
+button.b{width:100%;padding:11px;border:0;border-radius:12px;background:var(--ac);color:var(--ao);font:inherit;font-weight:800;cursor:pointer}button.b.g{background:var(--card);color:var(--tx);border:1px solid color-mix(in srgb,var(--tx) 20%,transparent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chip{padding:6px 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--tx) 22%,transparent);cursor:pointer;font-size:13px;background:none;color:var(--tx);font-family:inherit}.chip.on{background:var(--ac);color:var(--ao);border-color:var(--ac)}
+.rt{border:2px solid transparent;cursor:pointer}.rt.on{border-color:var(--ac)}.rt .h{display:flex;justify-content:space-between;align-items:center}
+.sc{font-weight:800;font-size:20px;padding:2px 12px;border-radius:10px;color:#111}.rt ul{margin:6px 0 0 16px;color:var(--mu);font-size:12.5px}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--ac);color:var(--ao);margin-left:6px;font-weight:600}
+.hz{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--tx) 12%,transparent)}.hz div{flex:1}.hz button{border:0;border-radius:8px;padding:6px 9px;background:var(--bg);color:var(--tx);cursor:pointer}
+#cam{display:none;position:fixed;z-index:999;background:#000;color:#fff;border-radius:14px;overflow:hidden;inset:12px}#cam.open{display:flex;flex-direction:column}
+#cam.mini{display:block;inset:auto 10px 10px auto;width:110px}#cam video{width:100%;flex:1;object-fit:cover;min-height:0}#cam .bar{display:flex;gap:8px;padding:8px}#cam.mini .bar{display:none}
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:var(--ac);color:var(--ao);padding:9px 16px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:1000;max-width:90vw}#toast.show{opacity:1}
+code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12.5px}td{padding:6px 4px;vertical-align:top;border-bottom:1px solid color-mix(in srgb,var(--tx) 12%,transparent)}
+@media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:42% 1fr}#mapw{order:-1}}
+</style></head><body>
+<header><b>🛣️ SmartMove AI</b><div id="dots"></div></header>
+<main><section id="side">
+<nav id="tabs"><button data-p="plan" class="on">Plan</button><button data-p="rep">Report</button><button data-p="modes">Modes</button><button data-p="set">Settings</button></nav>
+
+<div class="pg on" id="plan">
+<div class="box"><h3>Where to?</h3>
+<div class="row"><input id="from" placeholder="From (city, place)"><button class="b g sm" id="loc" title="Use my location">📍</button></div>
+<input id="to" placeholder="To (city, place)">
+<h3 style="margin-top:4px">Who is travelling? <span class="s">(optional, nothing is stored on a server)</span></h3>
+<div class="row" style="align-items:center"><span class="s">People</span><div class="row"><button class="b g" id="m">−</button><b id="n" style="text-align:center;align-self:center">1</b><button class="b g" id="pl">+</button></div></div>
+<div class="chips" id="pro"></div>
+<button class="b" id="find">Find safest route</button></div>
+<div id="res"></div><button class="b" id="go" style="display:none">▶ Start trip (voice alerts)</button><p class="s" id="tip" style="margin-top:8px"></p></div>
+
+<div class="pg" id="rep">
+<div class="box"><h3>Report a road problem</h3><div class="chips" id="ty"></div>
+<div class="row"><button class="b g" id="pk">📌 Pick on map</button><button class="b g" id="ph">📷 Add photo</button></div>
+<p class="s" id="rl" style="margin:8px 0">Location: your GPS, or pick on map</p><button class="b" id="sub">Submit report</button></div>
+<div class="box"><h3>Reported hazards</h3><select id="auth"><option>NHAI (National Highway)</option><option>State PWD (State Highway)</option><option>Municipal Corporation (city road)</option><option>Gram Panchayat (village road)</option></select><div id="hl"></div></div>
+<button class="b g" id="sim">⚡ Demo: simulate a pothole jolt (adds 1 virtual device)</button></div>
+
+<div class="pg" id="modes">
+<div class="box"><h3>How data comes in</h3><table>
+<tr><td>✋ <b>Manual</b></td><td>No hardware. Tap Report → type → submit. Works on any phone or laptop.</td></tr>
+<tr><td>📱 <b>Phone sensor</b></td><td>Start trip. Accelerometer + GPS detect jolts above 15 km/h and report automatically. Needs HTTPS or localhost.</td></tr>
+<tr><td>📷 <b>Phone camera</b></td><td>Add a photo to any report. During a trip the camera can auto-snap a frame when the sensor fires.</td></tr>
+<tr><td>🔌 <b>External hardware</b></td><td>Dashcam, OBD or IMU units send data to your backend or call <code>SmartMove.report({type,lat,lng})</code>. Same pipeline, no UI change.</td></tr></table></div>
+<div class="box"><h3>Verification</h3><p class="s">A hazard becomes Verified when 3 different devices confirm it within 20 m. One phone can never verify alone. Verified hazards raise route risk more than single reports.</p></div></div>
+
+<div class="pg" id="set"><div class="box"><h3>Settings</h3>
+<p class="s">Map Layer Mode (Google Maps vs Satellite vs OpenStreetMap)</p>
+<select id="map-layer-select">
+  <option value="google_roadmap">Google Maps (Roads, Buildings, Transit)</option>
+  <option value="google_hybrid">Google Maps Hybrid (Satellite + Road Names)</option>
+  <option value="google_terrain">Google Maps Terrain (Contours, Highway Network)</option>
+  <option value="osm">OpenStreetMap</option>
+</select>
+<p class="s">Google Maps API key (optional for official JS SDK)</p><input id="gk" placeholder="AIza...">
+<p class="s">Your backend URL (optional, e.g. http://localhost:5000)</p><input id="ap" placeholder="http://localhost:5000">
+<p class="s">Authority email for complaints</p><input id="ml" placeholder="authority@example.gov.in">
+<button class="b" id="sv">Save</button></div></div>
+</section><section id="mapw">
+  <div id="map"></div>
+  <div id="mt">
+    <span>🗺️ Layer:</span>
+    <select id="quick-layer">
+      <option value="google_roadmap">Google Roads</option>
+      <option value="google_hybrid">Google Satellite</option>
+      <option value="google_terrain">Google Terrain</option>
+      <option value="osm">OSM</option>
+    </select>
+  </div>
+</section></main>
+<div id="cam"><video id="vid" autoplay playsinline muted></video><div class="bar"><button class="b" id="snap">Capture</button><button class="b g" id="kp">Keep running (auto-snap)</button><button class="b g" id="cx">Close</button></div></div><div id="toast"></div>
+<script>
+const $=i=>document.getElementById(i),Q=s=>document.querySelectorAll(s),S=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},W=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const CFG=S('cfg',{gkey:'',api:'',mail:'',layer:'google_roadmap'});let dev=S('dev',null);if(!dev){dev=crypto.randomUUID();W('dev',dev)}
+let HZ=S('hz',[]),G=null,Lm=null,activeTileLayer=null,MP={r:[],h:[],p:[]},RT=[],SEL=0,A=null,B=null,me=null,spd=0,pick=false,pend={type:'pothole',photo:null,loc:null},PRO=new Set(S('pro',[])),N=S('n',1),WID=null,CAM=null,last=0,said={},DARK=false;
+const TY={pothole:['🕳️','Pothole'],bump:['🚧','Speed breaker'],water:['🌊','Waterlogging'],broken:['🛣️','Broken road'],light:['💡','No street light']};
+const PR={pregnant:'🤰 Pregnant',fracture:'🦴 Fracture / injured',weak:'🤒 Fever / weak',elderly:'👴 Elderly',child:'👶 Child',ambulance:'🚑 Ambulance'};
+const TH={white:['#f4f4f1','#ffffff','#1b1b1b','#6b6b6b','#1d6fdc','#ffffff',0],black:['#0d0d0f','#1b1b20','#f1f1f1','#9a9aa3','#ffc233','#1a1200',1],brown:['#2b1d15','#3b281c','#f4e7d9','#b9a18c','#e0a96d','#2b1d15',1],skin:['#f3d5bd','#fae6d6','#3a281d','#7d6454','#b4562d','#ffffff',0],pink:['#ffe1eb','#fff0f5','#4a1730','#8a5a70','#e0357a','#ffffff',0],red:['#2a090d','#3c1117','#ffe8e8','#c79a9d','#ff4d5a','#2a090d',1]};
+
+// Real Google Maps Tile URL Schemes
+const MAP_TILES = {
+  google_roadmap: {
+    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+    subdomains: ['0','1','2','3'],
+    maxZoom: 21,
+    attribution: '© Google Maps'
+  },
+  google_hybrid: {
+    url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    subdomains: ['0','1','2','3'],
+    maxZoom: 21,
+    attribution: '© Google Maps Satellite'
+  },
+  google_terrain: {
+    url: 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+    subdomains: ['0','1','2','3'],
+    maxZoom: 21,
+    attribution: '© Google Maps Terrain'
+  },
+  osm: {
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    subdomains: ['a','b','c'],
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }
+};
+
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),3200)}
+function theme(n){const t=TH[n]||TH.white,r=document.documentElement.style;['bg','card','tx','mu','ac','ao'].forEach((k,i)=>r.setProperty('--'+k,t[i]));DARK=!!t[6];W('th',n);document.body.classList.toggle('dk',DARK);Q('.dot').forEach(d=>d.classList.toggle('on',d.dataset.t===n));if(G)G.setOptions({styles:DARK?[{stylers:[{invert_lightness:true},{saturation:-35}]}]:[]})}
+Object.keys(TH).forEach(k=>{const b=document.createElement('button');b.className='dot';b.dataset.t=k;b.title=k;b.style.cssText=`background:${TH[k][0]};border-color:${TH[k][4]}`;b.onclick=()=>theme(k);$('dots').appendChild(b)});
+const dist=(a,b)=>{const R=6371e3,r=Math.PI/180,x=(b[0]-a[0])*r,y=(b[1]-a[1])*r,h=Math.sin(x/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
+function dseg(p,a,b){const k=Math.cos(p[0]*Math.PI/180),f=q=>[q[1]*k*111320,q[0]*110540],P=f(p),X=f(a),Y=f(b),dx=Y[0]-X[0],dy=Y[1]-X[1];let t=((P[0]-X[0])*dx+(P[1]-X[1])*dy)/(dx*dx+dy*dy||1);t=Math.max(0,Math.min(1,t));return Math.hypot(X[0]+t*dx-P[0],X[1]+t*dy-P[1])}
+const mk={line(co,c,sel,fn){let l;if(G){l=new google.maps.Polyline({path:co.map(p=>({lat:p[0],lng:p[1]})),strokeColor:c,strokeWeight:sel?7:4,strokeOpacity:sel?1:.5,map:G,zIndex:sel?2:1});l.addListener('click',fn)}else l=L.polyline(co,{color:c,weight:sel?7:4,opacity:sel?1:.5}).addTo(Lm).on('click',fn);return l},
+pin(p,e,t){return G?new google.maps.Marker({position:{lat:p[0],lng:p[1]},map:G,title:t,label:{text:e,fontSize:'16px'}}):L.marker(p,{title:t,icon:L.divIcon({className:'pin',html:e,iconSize:[26,26]})}).addTo(Lm)},
+rm(o){G?o.setMap(null):o.remove()},
+fit(co){if(G){const b=new google.maps.LatLngBounds();co.forEach(p=>b.extend({lat:p[0],lng:p[1]}));G.fitBounds(b,40)}else Lm.fitBounds(co,{padding:[30,30]})},
+go(p,z){G?(G.setCenter({lat:p[0],lng:p[1]}),G.setZoom(z)):Lm.setView(p,z)}};
+
+function setMapLayer(layerKey){
+  if(!Lm) return;
+  const cfg = MAP_TILES[layerKey] || MAP_TILES.google_roadmap;
+  if(activeTileLayer) Lm.removeLayer(activeTileLayer);
+  activeTileLayer = L.tileLayer(cfg.url, {
+    subdomains: cfg.subdomains,
+    maxZoom: cfg.maxZoom,
+    attribution: cfg.attribution
+  }).addTo(Lm);
+  CFG.layer = layerKey;
+  W('cfg', CFG);
+  $('quick-layer').value = layerKey;
+  $('map-layer-select').value = layerKey;
+  toast(`Layer switched: ${cfg.attribution}`);
+}
+
+function boot(){const c=[18.5204,73.8567]; // Center Pune default
+if(window.google&&google.maps&&CFG.gkey){
+  G=new google.maps.Map($('map'),{center:{lat:c[0],lng:c[1]},zoom:13,disableDefaultUI:false,zoomControl:true,clickableIcons:true});
+  G.addListener('click',e=>mclick(e.latLng.lat(),e.latLng.lng()));
+  $('quick-layer').style.display='none';
+}
+else{
+  Lm=L.map('map').setView(c,13);
+  setMapLayer(CFG.layer || 'google_roadmap');
+  Lm.on('click',e=>mclick(e.latlng.lat,e.latlng.lng));
+}
+theme(S('th','white'));renderHz();locate(false)}
+
+window.gm_authFailure=()=>{toast('Google API key requires billing. Loading Google Maps Layer...');CFG.gkey='';W('cfg',CFG);setTimeout(()=>location.reload(),1000)};
+if(CFG.gkey){const s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+CFG.gkey+'&callback=boot';s.onerror=boot;document.head.appendChild(s)}else boot();
+
+function locate(fill){navigator.geolocation?.getCurrentPosition(p=>{me=[p.coords.latitude,p.coords.longitude];mk.go(me,14);if(fill){A=me;$('from').value='My location'}},()=>fill&&toast('Allow location access, or type a place'),{enableHighAccuracy:true})}
+$('loc').onclick=()=>locate(true);
+function mclick(a,b){if(pick){pend.loc=[a,b];pick=false;$('rl').textContent=`Location: ${a.toFixed(5)}, ${b.toFixed(5)}`;toast('Location picked')}}
+async function geo(id,cur){const v=$(id).value.trim();if(id==='from'&&(v==='My location'||!v)&&(cur||me))return cur||me;if(!v)throw Error('Enter '+id);const r=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(v))).json();if(!r[0])throw Error('Place not found: '+v);return[+r[0].lat,+r[0].lon]}
+async function weather(p){const h=new Date().getHours();try{const c=(await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p[0]}&longitude=${p[1]}&current=precipitation,weather_code,visibility,is_day`)).json()).current,s=Math.min(100,c.precipitation*35+([45,48].includes(c.weather_code)?50:0)+(c.weather_code>=95?60:0)+(c.visibility<2000?30:0));return{s,night:!c.is_day,txt:c.precipitation>0?`Rain ${c.precipitation} mm`:c.visibility<2000?'Low visibility':s>40?'Bad weather':'Weather clear'}}catch{return{s:0,night:h>=19||h<6,txt:'Weather unavailable'}}}
+function weights(){const p=PRO;if(p.has('ambulance'))return{hz:.15,wx:.1,time:.05,turn:.1,dur:.6};if(['pregnant','fracture','weak'].some(x=>p.has(x)))return{hz:.5,wx:.2,time:.1,turn:.15,dur:.05};if(p.has('elderly')||p.has('child'))return{hz:.3,wx:.25,time:.25,turn:.1,dur:.1};return{hz:.3,wx:.2,time:.15,turn:.15,dur:.2}}
+function nearHz(co){let w=0,list=[];HZ.forEach(h=>{for(let i=0;i<co.length-1;i++)if(dseg([h.lat,h.lng],co[i],co[i+1])<35){list.push(h);w+=h.devs.length>=3?1:.6;break}});return{n:list.length,w,list}}
+const col=s=>s<35?'#22c55e':s<60?'#f59e0b':'#ef4444';
+async function plan(){const bt=$('find');bt.textContent='Finding...';try{A=await geo('from',A);B=await geo('to');
+const j=await(await fetch(`https://router.project-osrm.org/route/v1/driving/${A[1]},${A[0]};${B[1]},${B[0]}?alternatives=3&overview=full&geometries=geojson&steps=true`)).json();if(!j.routes?.length)throw Error('No road route found');
+const wx=await weather(A),fast=Math.min(...j.routes.map(r=>r.duration)),w=weights(),ws=Object.values(w).reduce((a,b)=>a+b);
+RT=j.routes.map(r=>{const co=r.geometry.coordinates.map(c=>[c[1],c[0]]),hz=nearHz(co),km=r.distance/1000,turns=r.legs[0].steps.length,extra=Math.round((r.duration-fast)/60),
+f={hz:Math.min(100,hz.w*30),wx:wx.s,time:wx.night?70:10,turn:Math.min(100,turns/Math.max(km,1)*8),dur:Math.min(100,(r.duration/fast-1)*250)},sc=Math.round(Object.keys(w).reduce((a,k)=>a+f[k]*w[k],0)/ws),why=[];
+why.push(hz.n?`${hz.n} reported hazard${hz.n>1?'s':''} on this road`:'No reported hazards');why.push(wx.txt);if(wx.night)why.push('Night driving');why.push(`${turns} turns`);if(extra>0)why.push(`${extra} min slower than fastest`);return{co,sc,km,min:Math.round(r.duration/60),hz,why}});
+SEL=RT.reduce((b,r,i)=>r.sc<RT[b].sc?i:b,0);draw();$('go').style.display='block';tip()}catch(e){toast(e.message)}bt.textContent='Find safest route'}
+function draw(){MP.r.forEach(mk.rm);MP.p.forEach(mk.rm);MP.r=[];MP.p=[];
+RT.forEach((r,i)=>i!==SEL&&MP.r.push(mk.line(r.co,col(r.sc),0,()=>{SEL=i;draw()})));MP.r.push(mk.line(RT[SEL].co,col(RT[SEL].sc),1,()=>{}));
+MP.p.push(mk.pin(A,'🟢','Start'),mk.pin(B,'🏁','Destination'));mk.fit(RT[SEL].co);
+const best=RT.reduce((b,r,i)=>r.sc<RT[b].sc?i:b,0);
+$('res').innerHTML=RT.map((r,i)=>`<div class="box rt ${i===SEL?'on':''}" data-i="${i}"><div class="h"><div><b>${r.min} min · ${r.km.toFixed(1)} km</b>${i===best?'<span class="tag">Safest</span>':''}</div><span class="sc" style="background:${col(r.sc)}">${r.sc}</span></div><ul>${r.why.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('');
+Q('.rt').forEach(e=>e.onclick=()=>{SEL=+e.dataset.i;draw()})}
+function tip(){const p=PRO,t=p.has('ambulance')?'Ambulance mode: fastest road gets the most weight.':['pregnant','fracture','weak'].some(x=>p.has(x))?'Gentle mode: potholes and speed breakers count double. Drive slowly over bumps.':p.has('child')||p.has('elderly')?'Family mode: night driving and bad weather count more.':'Balanced mode. Select travellers above if anyone needs extra care.';$('tip').textContent=t}
+$('find').onclick=plan;$('m').onclick=()=>{N=Math.max(1,N-1);W('n',N);$('n').textContent=N};$('pl').onclick=()=>{N=Math.min(12,N+1);W('n',N);$('n').textContent=N};$('n').textContent=N;
+Object.entries(PR).forEach(([k,v])=>{const b=document.createElement('button');b.className='chip'+(PRO.has(k)?' on':'');b.textContent=v;b.onclick=()=>{PRO.has(k)?PRO.delete(k):PRO.add(k);b.classList.toggle('on');W('pro',[...PRO]);tip()};$('pro').appendChild(b)});tip();
+Object.entries(TY).forEach(([k,v])=>{const b=document.createElement('button');b.className='chip'+(k==='pothole'?' on':'');b.dataset.k=k;b.textContent=v[0]+' '+v[1];b.onclick=()=>{pend.type=k;Q('#ty .chip').forEach(c=>c.classList.toggle('on',c===b))};$('ty').appendChild(b)});
+Q('#tabs button').forEach(b=>b.onclick=()=>{Q('#tabs button').forEach(x=>x.classList.toggle('on',x===b));Q('.pg').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p))});
+function addHz(o){const p=o.loc||me||A;if(!p)return toast('Need a location: allow GPS or pick on the map');
+let h=HZ.find(x=>x.type===o.type&&dist([x.lat,x.lng],p)<20);if(!h){h={id:Date.now()+Math.random().toString(36).slice(2,5),type:o.type,lat:p[0],lng:p[1],devs:[],src:o.src,t:Date.now()};HZ.push(h)}
+const d=o.dev||dev;if(!h.devs.includes(d))h.devs.push(d);if(o.photo)h.photo=o.photo;if(o.sim)h.sim=1;try{W('hz',HZ)}catch{delete h.photo;W('hz',HZ)}renderHz();
+if(CFG.api&&o.type==='pothole')fetch(CFG.api+'/api/complaints/sensor-event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lat:p[0],lng:p[1],magnitude:o.mag||14,speed:(spd||0)*3.6,deviceId:d})}).catch(()=>{});
+toast(`${TY[o.type][1]} saved · ${h.devs.length}/3 confirmations`)}
+function renderHz(){MP.h.forEach(mk.rm);MP.h=HZ.map(h=>mk.pin([h.lat,h.lng],TY[h.type][0],TY[h.type][1]));
+$('hl').innerHTML=HZ.length?HZ.slice().reverse().map(h=>`<div class="hz"><span style="font-size:22px">${TY[h.type][0]}</span><div><b>${TY[h.type][1]}</b>${h.sim?'<span class="tag">demo</span>':''}<br><span class="s">${h.devs.length>=3?'Verified':'Reported'} · ${h.devs.length}/3 devices · ${h.src}</span></div>${h.photo?`<img src="${h.photo}" width="38" height="38" style="border-radius:8px;object-fit:cover">`:''}<button onclick="mail('${h.id}')" title="Draft complaint email">✉️</button><button onclick="del('${h.id}')" title="Delete">🗑</button></div>`).join(''):'<p class="s">No hazards yet. Report one, or run a trip with auto-detect.</p>'}
+function del(id){HZ=HZ.filter(h=>h.id!=id);W('hz',HZ);renderHz()}
+function mail(id){const h=HZ.find(x=>x.id==id),n=TY[h.type][1];location.href='mailto:'+(CFG.mail||'')+'?subject='+encodeURIComponent(`Road hazard complaint: ${n} (${h.lat.toFixed(5)}, ${h.lng.toFixed(5)})`)+'&body='+encodeURIComponent(`To the concerned authority (${$('auth').value}),\n\nHazard: ${n}\nLatitude: ${h.lat}\nLongitude: ${h.lng}\nMap: https://maps.google.com/?q=${h.lat},${h.lng}\nConfirmed by ${h.devs.length} device(s)\nFirst reported: ${new Date(h.t).toLocaleString()}\n\nPlease repair this and share the status.\n\nSent via SmartMove AI`)}
+$('pk').onclick=()=>{pick=true;toast('Tap the map to choose the spot')};
+$('sub').onclick=()=>{addHz({type:pend.type,src:'manual',loc:pend.loc||me,photo:pend.photo});pend.loc=null;pend.photo=null;$('rl').textContent='Location: your GPS, or pick on map'};
+$('sim').onclick=()=>{const p=me||(RT[SEL]&&RT[SEL].co[Math.floor(RT[SEL].co.length/2)])||A;addHz({type:'pothole',src:'simulated',loc:p,sim:1,mag:14.5,dev:'sim-'+Math.random().toString(36).slice(2,8)})};
+async function camOn(){try{CAM=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});$('vid').srcObject=CAM;$('cam').className='open'}catch(e){toast('Camera unavailable: '+e.message)}}
+function camOff(){CAM?.getTracks().forEach(t=>t.stop());CAM=null;$('cam').className=''}
+function grab(){const v=$('vid');if(!CAM||!v.videoWidth)return null;const c=document.createElement('canvas');c.width=480;c.height=480*v.videoHeight/v.videoWidth;c.getContext('2d').drawImage(v,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.6)}
+$('ph').onclick=camOn;$('snap').onclick=()=>{pend.photo=grab();toast(pend.photo?'Photo attached':'Camera not ready');if(!pend.photo)return;if($('cam').dataset.keep)$('cam').className='mini';else camOff()};
+$('kp').onclick=()=>{$('cam').dataset.keep=1;$('cam').className='mini';toast('Camera will auto-snap on sensor jolts')};$('cx').onclick=camOff;
+function say(t){try{speechSynthesis.speak(new SpeechSynthesisUtterance(t))}catch{}}
+async function startSense(){if(!('DeviceMotionEvent'in window))return toast('No motion sensor here. Use Manual or Camera mode.');try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!=='granted')return toast('Motion permission denied')}catch{}window.addEventListener('devicemotion',onMo);toast('Auto-detect ON')}
+function onMo(e){const lin=e.acceleration&&e.acceleration.z!=null,z=Math.abs((lin?e.acceleration:e.accelerationIncludingGravity||{}).z||0)-(lin?0:9.8);if(spd<4.2||z<12||Date.now()-last<2500||!me)return;last=Date.now();addHz({type:'pothole',src:'sensor',mag:+z.toFixed(1),photo:grab()})}
+$('go').onclick=()=>{if(WID!=null){navigator.geolocation.clearWatch(WID);WID=null;window.removeEventListener('devicemotion',onMo);$('go').textContent='▶ Start trip (voice alerts)';return}
+WID=navigator.geolocation.watchPosition(p=>{me=[p.coords.latitude,p.coords.longitude];spd=p.coords.speed||0;mk.go(me,16);(RT[SEL]?RT[SEL].hz.list:[]).forEach(h=>{const d=dist(me,[h.lat,h.lng]);if(!said[h.id]&&d<300){said[h.id]=1;say(`${TY[h.type][1]} ahead in ${Math.round(d)} meters. Slow down.`)}})},e=>toast('GPS: '+e.message),{enableHighAccuracy:true});
+startSense();navigator.wakeLock?.request('screen').catch(()=>{});$('go').textContent='■ Stop trip'};
+$('gk').value=CFG.gkey;$('ap').value=CFG.api;$('ml').value=CFG.mail;
+if($('map-layer-select')) $('map-layer-select').value=CFG.layer||'google_roadmap';
+if($('quick-layer')) $('quick-layer').value=CFG.layer||'google_roadmap';
+$('quick-layer')?.addEventListener('change', e=>setMapLayer(e.target.value));
+$('map-layer-select')?.addEventListener('change', e=>setMapLayer(e.target.value));
+
+$('sv').onclick=()=>{
+  CFG.gkey=$('gk').value.trim();
+  CFG.api=$('ap').value.trim().replace(/\/$/,'');
+  CFG.mail=$('ml').value.trim();
+  CFG.layer=$('map-layer-select').value;
+  W('cfg',CFG);
+  toast('Settings saved');
+  setTimeout(()=>location.reload(),600)
+};
+window.SmartMove={report:o=>addHz({type:o.type||'pothole',loc:[o.lat,o.lng],src:o.src||'hardware',mag:o.mag,dev:o.deviceId})};
+</script></body></html>

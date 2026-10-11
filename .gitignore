@@ -1,0 +1,14 @@
+# Android Studio and Gradle
+.idea/
+.gradle/
+local.properties
+**/build/
+*.iml
+
+# Node.js (reserved for the backend phase)
+backend/node_modules/
+backend/.env
+
+# Operating-system files
+.DS_Store
+Thumbs.db

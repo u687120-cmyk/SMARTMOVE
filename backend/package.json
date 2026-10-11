@@ -1,0 +1,38 @@
+{
+  "name": "smartmove-backend",
+  "version": "1.0.0",
+  "description": "SMARTMOVE AI — Node.js & Express REST Backend Foundation",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node test-weather.js && node test-traffic.js && node test-risk.js && node test-routes.js && node test-reroute.js && node test-trip-completion.js && node test-phase19-integration.js && node test-api.js",
+    "test:weather": "node test-weather.js",
+    "test:traffic": "node test-traffic.js",
+    "test:risk": "node test-risk.js",
+    "test:routes": "node test-routes.js",
+    "test:reroute": "node test-reroute.js",
+    "test:completion": "node test-trip-completion.js",
+    "test:integration": "node test-phase19-integration.js",
+    "db:test": "node test-database.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.24.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  },
+  "keywords": [
+    "smartmove",
+    "road-safety",
+    "express",
+    "rest-api"
+  ],
+  "author": "SMARTMOVE AI Team",
+  "license": "ISC"
+}

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SMARTMOVE AI</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #07111f;
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        button, input, select {
+            font-family: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
+        .page-description {
+            color: #91a3b5;
+            margin-bottom: 10px;
+            font-size: 11px;
+        }
+
+        .card {
+            background: #0b1a2b;
+            border: 1px solid #1a3047;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .card h2 {
+            font-size: 14px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .field {
+            margin-bottom: 8px;
+        }
+
+        .field label {
+            display: block;
+            color: #9db0c2;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .input {
+            flex: 1;
+            height: 40px;
+            background: #071321;
+            color: white;
+            border: 1px solid #263e55;
+            border-radius: 8px;
+            padding: 0 10px;
+            outline: none;
+            font-size: 12px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 8px;
+            min-height: 40px;
+            padding: 0 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: #1683ff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #13263a;
+            color: white;
+            border: 1px solid #29445e;
+        }
+
+        .btn-danger {
+            background: #e55757;
+            color: #ffffff;
+        }
+
+        .btn-warning {
+            background: #d97706;
+            color: #ffffff;
+        }
+
+        .presets {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+
+        .preset-chip {
+            background: #102337;
+            border: 1px solid #203b54;
+            color: #8da4be;
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .location-box {
+            background: #071625;
+            border: 1px solid #1c3b54;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-top: 6px;
+        }
+
+        .location-status {
+            color: #73c4ff;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .coordinates {
+            color: #75899d;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        /* 3 MODES STRIP */
+        .mode-strip {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .mode-tab {
+            flex: 1;
+            background: #0b1a2b;
+            border: 1px solid #1a3047;
+            border-radius: 8px;
+            padding: 6px 4px;
+            font-size: 10px;
+            font-weight: 600;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        .mode-tab.active-tab {
+            background: #0f2742;
+            border-color: #1683ff;
+            color: #38bdf8;
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .sensor-box {
+            background: #05101d;
+            border: 1px solid #19314d;
+            border-radius: 6px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .sensor-label {
+            font-size: 9px;
+            color: #7894af;
+        }
+
+        .sensor-val {
+            font-size: 13px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .map-wrapper {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #map, #activeMap {
+            width: 100%;
+            height: 280px;
+            background: #0a1725;
+            z-index: 10;
+        }
+
+        .map-mode-bar {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            z-index: 500;
+            display: flex;
+            gap: 4px;
+            background: rgba(7, 19, 33, 0.9);
+            padding: 3px;
+            border-radius: 6px;
+            border: 1px solid #26445e;
+        }
+
+        .mode-btn {
+            background: #13263a;
+            border: 1px solid #26445e;
+            color: #94a3b8;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 600;
+        }
+
+        .mode-btn.active-mode {
+            background: #1683ff;
+            color: white;
+        }
+
+        .route-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .summary-item {
+            background: #071625;
+            border: 1px solid #1b354d;
+            border-radius: 6px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .summary-label {
+            color: #7891a8;
+            font-size: 8px;
+            font-weight: 600;
+        }
+
+        .summary-value {
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .metric {
+            background: #0b1a2b;
+            border: 1px solid #1a3047;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .metric-label {
+            color: #7e94a9;
+            font-size: 9px;
+            margin-bottom: 2px;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .proximity-alert {
+            background: #3b2812;
+            border: 1px solid #85531b;
+            color: #fbbf24;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .condition {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #193047;
+            font-size: 11px;
+        }
+
+        /* 360° STREET VIEW MODAL */
+        .streetview-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 10, 20, 0.95);
+            display: none;
+            flex-direction: column;
+            z-index: 4000;
+            padding: 8px;
+        }
+
+        .streetview-modal.show {
+            display: flex;
+        }
+
+        .streetview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            background: #091727;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #1d334b;
+        }
+
+        .streetview-container {
+            flex: 1;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #26445e;
+            background: #000;
+        }
+
+        .streetview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .toast {
+            position: fixed;
+            left: 10px;
+            right: 10px;
+            bottom: 16px;
+            background: #102337;
+            border: 1px solid #31516e;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: none;
+            z-index: 2000;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .toast.show {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 3 MODES TAB -->
+<div class="mode-strip">
+    <div class="mode-tab active-tab" id="tabSensor" onclick="setAppMode('LIVE_SENSOR')">📱 SENSOR</div>
+    <div class="mode-tab" id="tabGps" onclick="setAppMode('GPS_TELEMETRY')">📡 GPS</div>
+    <div class="mode-tab" id="tabDemo" onclick="setAppMode('DEMO_SIM')">🎭 DEMO 3-VEHICLE</div>
+</div>
+
+<!-- SCREEN 1: PLANNER -->
+<section id="plannerScreen" class="screen active">
+
+    <!-- Origin -->
+    <div class="card">
+        <h2>📍 Starting Location</h2>
+        <div class="field">
+            <div class="input-group">
+                <input id="originInput" class="input" type="text" value="Pune Railway Station" />
+                <button class="btn btn-secondary" onclick="detectGPSLocation()">📍 GPS</button>
+            </div>
+            <div class="presets">
+                <span class="preset-chip" onclick="setOrigin('Pune Railway Station', 18.5284, 73.8739)">Pune Station</span>
+                <span class="preset-chip" onclick="setOrigin('Shivaji Nagar, Pune', 18.5314, 73.8446)">Shivaji Nagar</span>
+                <span class="preset-chip" onclick="setOrigin('Mumbai Central', 18.9690, 72.8205)">Mumbai</span>
+            </div>
+        </div>
+        <div class="location-box">
+            <div class="location-status" id="originStatus">Starting: Pune Railway Station</div>
+        </div>
+    </div>
+
+    <!-- Destination -->
+    <div class="card">
+        <h2>🎯 Destination Location</h2>
+        <div class="field">
+            <input id="destinationInput" class="input" type="text" value="Hinjewadi Phase 1, Pune" />
+            <div class="presets">
+                <span class="preset-chip" onclick="setDestination('Hinjewadi Phase 1, Pune', 18.5913, 73.7389)">Hinjewadi</span>
+                <span class="preset-chip" onclick="setDestination('Pune Airport', 18.5822, 73.9197)">Airport</span>
+                <span class="preset-chip" onclick="setDestination('Lonavala', 18.7557, 73.4091)">Lonavala</span>
+            </div>
+        </div>
+        <div class="location-box">
+            <div class="location-status" id="destinationName">Destination: Hinjewadi Phase 1, Pune</div>
+        </div>
+    </div>
+
+    <!-- SENSOR HUD -->
+    <div class="card" id="mobileSensorCard">
+        <h2>
+            <span>📱 Accelerometer & Gyroscope</span>
+            <button class="btn btn-secondary" style="height:24px; font-size:10px; padding:0 6px;" onclick="enableMotionSensors()">⚡ Grant</button>
+        </h2>
+        <div class="sensor-grid">
+            <div class="sensor-box"><div class="sensor-label">Z-BUMP</div><div class="sensor-val" id="valZAccel">9.8 m/s²</div></div>
+            <div class="sensor-box"><div class="sensor-label">TILT</div><div class="sensor-val" id="valTilt">0.4°</div></div>
+            <div class="sensor-box"><div class="sensor-label">STATUS</div><div class="sensor-val" style="color:#10b981; font-size:11px;" id="sensorStatus">SMOOTH</div></div>
+        </div>
+    </div>
+
+    <!-- 3-VEHICLE CONSENSUS SIMULATOR -->
+    <div class="card" id="mobileDemoCard" style="display:none;">
+        <h2>🏛️ 3-Vehicle Verification Simulation</h2>
+        <button class="btn btn-warning" style="width:100%; height:36px; font-size:11px; margin-top:4px;" onclick="runMobileDemo()">
+            ⚡ Simulate 3-Vehicle Pothole Consensus
+        </button>
+        <div id="mobileTicketBox" style="display:none; margin-top:6px; background:#071321; border:1px solid #10b981; border-radius:6px; padding:6px; font-size:10px; color:#10b981;">
+            ✓ Ticket #SM-8492 issued to Road Authority!
+        </div>
+    </div>
+
+    <!-- Calculate Distance & Route -->
+    <div class="card">
+        <h2>🛣️ Route & Safety Preview</h2>
+        <button class="btn btn-primary" style="width:100%;" onclick="calculateRoute()">
+            🚀 Calculate Distance & Scan Hazards
+        </button>
+        <div id="routeSummary" class="route-summary">
+            <div class="summary-item"><div class="summary-label">DIST</div><div class="summary-value" id="previewDistance" style="color:#77c5ff;">18.4 km</div></div>
+            <div class="summary-item"><div class="summary-label">ETA</div><div class="summary-value" id="previewETA" style="color:#57d59c;">32 min</div></div>
+            <div class="summary-item"><div class="summary-label">HAZARDS</div><div class="summary-value" style="color:#f59e0b;">3 Found</div></div>
+            <div class="summary-item"><div class="summary-label">SCORE</div><div class="summary-value" id="previewRisk" style="color:#2eb872;">94/100</div></div>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div class="card">
+        <h2>🗺️ Interactive Route Map</h2>
+        <div class="map-wrapper">
+            <div class="map-mode-bar">
+                <button id="btnModeStreets" class="mode-btn active-mode" onclick="switchMapLayer('streets')">🗺️ Map</button>
+                <button id="btnModeSatellite" class="mode-btn" onclick="switchMapLayer('satellite')">🛰️ Sat</button>
+                <button class="mode-btn" onclick="openStreetView('route')">👀 360°</button>
+            </div>
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <!-- Start Journey Button -->
+    <button class="btn btn-primary" style="width:100%; height:46px; font-size:14px; margin-bottom:14px;" onclick="startTrip()">
+        START SMARTMOVE JOURNEY
+    </button>
+</section>
+
+<!-- SCREEN 2: ACTIVE TRIP -->
+<section id="activeTripScreen" class="screen">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h1 class="page-title">Active Navigation</h1>
+        <button class="mode-btn" style="background:#4338ca; color:white;" onclick="openStreetView('route')">👀 360° View</button>
+    </div>
+
+    <div class="metrics-grid">
+        <div class="metric"><div class="metric-label">CURRENT SPEED</div><div class="metric-value"><span id="liveSpeed">45.2</span> <span style="font-size:10px;">km/h</span></div></div>
+        <div class="metric"><div class="metric-label">REMAINING DIST</div><div class="metric-value" id="liveDistance">18.4 km</div></div>
+        <div class="metric"><div class="metric-label">ETA</div><div class="metric-value" id="liveETA">32 min</div></div>
+        <div class="metric"><div class="metric-label">SAFETY SCORE</div><div class="metric-value" style="color:#2eb872;" id="liveRisk">94/100</div></div>
+    </div>
+
+    <div class="proximity-alert">
+        <strong>⚠️ ROAD NOTICE:</strong> Pothole cluster & construction zone detected 400m ahead. Slow down to 30 km/h.
+    </div>
+
+    <br>
+
+    <div class="card">
+        <h2>Live Navigation Map</h2>
+        <div class="map-wrapper">
+            <div id="activeMap"></div>
+        </div>
+    </div>
+
+    <!-- Quick Hazard Reporter -->
+    <div class="card">
+        <h2>⚠️ Report Road Obstacle</h2>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+            <button class="btn btn-warning" style="flex:1;" onclick="quickReportHazard('POTHOLE')">🕳️ Pothole</button>
+            <button class="btn btn-danger" style="flex:1;" onclick="quickReportHazard('ACCIDENT')">🚗 Accident</button>
+            <button class="btn btn-secondary" style="flex:1;" onclick="quickReportHazard('CONSTRUCTION')">🚧 Work</button>
+        </div>
+    </div>
+
+    <button class="btn btn-danger" style="width:100%; height:44px; margin-bottom:14px;" onclick="stopTrip()">
+        🛑 STOP & COMPLETE JOURNEY
+    </button>
+</section>
+
+<!-- SCREEN 3: COMPLETED -->
+<section id="completedScreen" class="screen">
+    <div class="card" style="text-align:center; padding:16px;">
+        <div style="font-size:28px; color:#2eb872; margin-bottom:4px;">✓</div>
+        <h1 class="page-title">Journey Completed Safely</h1>
+        <div style="text-align:left; margin:10px 0;">
+            <div class="condition"><span>Starting Point:</span> <span id="completedOrigin" style="font-weight:bold;">--</span></div>
+            <div class="condition"><span>Destination:</span> <span id="completedDestination" style="font-weight:bold;">--</span></div>
+            <div class="condition"><span>Total Distance:</span> <span id="completedDistance" style="font-weight:bold;">--</span></div>
+            <div class="condition"><span>Duration:</span> <span id="completedDuration" style="font-weight:bold;">--</span></div>
+            <div class="condition"><span>Safety Score:</span> <span style="font-weight:bold; color:#2eb872;">94/100 (Safe)</span></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="newTrip()">PLAN ANOTHER TRIP</button>
+    </div>
+</section>
+
+<!-- 360° STREET VIEW MODAL -->
+<div id="streetViewModal" class="streetview-modal">
+    <div class="streetview-header">
+        <div style="font-weight:bold; font-size:13px;">👀 360° Street View</div>
+        <button class="btn btn-secondary" style="height:28px; padding:0 8px; font-size:10px;" onclick="closeStreetView()">✕ Close</button>
+    </div>
+    <div class="streetview-container">
+        <iframe id="streetViewIframe" class="streetview-iframe" src="" allowfullscreen></iframe>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+"use strict";
+
+let lMap = null, activeLMap = null;
+let mapTileLayers = {};
+let originLMarker = null, destLMarker = null, liveLMarker = null;
+let routeLPolyline = null, activeLPolyline = null;
+let hazardLMarkers = [], activeHazardLMarkers = [];
+let simInterval = null, navStepIndex = 0;
+let routePathCoordinates = [];
+
+const roadHazards = [
+    { type: "POTHOLE", title: "Deep Pothole Cluster", icon: "🕳️", lat: 18.5580, lng: 73.8050, color: "#f59e0b" },
+    { type: "CONSTRUCTION", title: "Road Work / Flyover Surfacing", icon: "🚧", lat: 18.5790, lng: 73.7650, color: "#eab308" },
+    { type: "ACCIDENT", title: "Accident Alert", icon: "🚗", lat: 18.5900, lng: 73.7440, color: "#ef4444" }
+];
+
+const appState = {
+    origin: { name: "Pune Railway Station", lat: 18.5284, lng: 73.8739 },
+    destination: { name: "Hinjewadi Phase 1, Pune", lat: 18.5913, lng: 73.7389 },
+    distanceKm: 18.4,
+    durationMin: 32,
+    safetyScore: 94,
+    tripStarted: false,
+    remainingDistance: 18.4
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+    initLeafletMap();
+    initMotionSensors();
+    setTimeout(calculateRoute, 350);
+});
+
+function setAppMode(mode) {
+    document.querySelectorAll(".mode-tab").forEach(t => t.classList.remove("active-tab"));
+    if (mode === "LIVE_SENSOR") {
+        document.getElementById("tabSensor").classList.add("active-tab");
+        document.getElementById("mobileSensorCard").style.display = "block";
+        document.getElementById("mobileDemoCard").style.display = "none";
+        enableMotionSensors();
+    } else if (mode === "GPS_TELEMETRY") {
+        document.getElementById("tabGps").classList.add("active-tab");
+        document.getElementById("mobileSensorCard").style.display = "none";
+        document.getElementById("mobileDemoCard").style.display = "none";
+    } else if (mode === "DEMO_SIM") {
+        document.getElementById("tabDemo").classList.add("active-tab");
+        document.getElementById("mobileSensorCard").style.display = "none";
+        document.getElementById("mobileDemoCard").style.display = "block";
+    }
+}
+
+function initMotionSensors() {
+    if (window.DeviceMotionEvent) {
+        window.addEventListener("devicemotion", handleMotion);
+    }
+}
+
+function enableMotionSensors() {
+    if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+        DeviceMotionEvent.requestPermission().then(r => {
+            if (r === "granted") window.addEventListener("devicemotion", handleMotion);
+        });
+    }
+}
+
+function handleMotion(e) {
+    const acc = e.accelerationIncludingGravity || e.acceleration;
+    if (!acc) return;
+    const z = acc.z ? Math.abs(acc.z) : 9.8;
+    const x = acc.x ? Math.abs(acc.x) : 0;
+    const y = acc.y ? Math.abs(acc.y) : 0;
+    document.getElementById("valZAccel").textContent = `${z.toFixed(1)} m/s²`;
+    document.getElementById("valTilt").textContent = `${(x+y).toFixed(1)}°`;
+    if (z > 14.5) {
+        document.getElementById("sensorStatus").textContent = "BUMP!";
+        document.getElementById("sensorStatus").style.color = "#ef4444";
+    } else {
+        document.getElementById("sensorStatus").textContent = "SMOOTH";
+        document.getElementById("sensorStatus").style.color = "#10b981";
+    }
+}
+
+function runMobileDemo() {
+    showToast("Vehicle 1 -> Vehicle 2 -> Vehicle 3 consensus verifying...");
+    setTimeout(() => {
+        document.getElementById("mobileTicketBox").style.display = "block";
+        showToast("✓ Municipal Ticket #SM-8492 Generated!");
+    }, 1500);
+}
+
+function initLeafletMap() {
+    try {
+        if (lMap) lMap.remove();
+        lMap = L.map("map").setView([appState.origin.lat, appState.origin.lng], 12);
+
+        mapTileLayers = {
+            streets: L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19 }),
+            satellite: L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 })
+        };
+        mapTileLayers.streets.addTo(lMap);
+
+        lMap.on("click", (e) => {
+            setDestination(`Destination (${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)})`, e.latlng.lat, e.latlng.lng);
+            calculateRoute();
+        });
+
+        plotHazards(lMap, hazardLMarkers);
+    } catch (e) {}
+}
+
+function switchMapLayer(mode) {
+    document.querySelectorAll(".map-mode-bar button").forEach(b => b.classList.remove("active-mode"));
+    if (mode === "streets") document.getElementById("btnModeStreets").classList.add("active-mode");
+    if (mode === "satellite") document.getElementById("btnModeSatellite").classList.add("active-mode");
+    Object.values(mapTileLayers).forEach(l => { if (lMap.hasLayer(l)) lMap.removeLayer(l); });
+    if (mapTileLayers[mode]) mapTileLayers[mode].addTo(lMap);
+}
+
+function openStreetView(target) {
+    let lat = appState.origin.lat, lng = appState.origin.lng;
+    if (target === "destination") { lat = appState.destination.lat; lng = appState.destination.lng; }
+    document.getElementById("streetViewIframe").src = `https://maps.google.com/maps?q=&layer=c&cbll=${lat},${lng}&cbp=11,0,0,0,0&output=svembed`;
+    document.getElementById("streetViewModal").classList.add("show");
+}
+
+function closeStreetView() {
+    document.getElementById("streetViewIframe").src = "";
+    document.getElementById("streetViewModal").classList.remove("show");
+}
+
+function plotHazards(targetMap, markerList) {
+    markerList.forEach(m => targetMap.removeLayer(m));
+    markerList.length = 0;
+    roadHazards.forEach(hz => {
+        const icon = L.divIcon({
+            html: `<div style="background:#071321; border:2px solid ${hz.color}; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:13px;">${hz.icon}</div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
+        });
+        const m = L.marker([hz.lat, hz.lng], { icon: icon }).addTo(targetMap);
+        m.bindPopup(`<b>${hz.icon} ${hz.title}</b>`);
+        markerList.push(m);
+    });
+}
+
+function setOrigin(name, lat, lng) {
+    appState.origin = { name, lat, lng };
+    document.getElementById("originInput").value = name;
+    document.getElementById("originStatus").textContent = `Starting: ${name}`;
+    if (lMap) {
+        if (originLMarker) lMap.removeLayer(originLMarker);
+        const icon = L.divIcon({
+            html: '<div style="background:#1683ff; color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:10px; border:2px solid white;">A</div>',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+        originLMarker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(lMap);
+        originLMarker.on("dragend", (e) => {
+            const p = e.target.getLatLng();
+            setOrigin(`Pin (${p.lat.toFixed(3)}, ${p.lng.toFixed(3)})`, p.lat, p.lng);
+            calculateRoute();
+        });
+        lMap.panTo([lat, lng]);
+    }
+    showToast(`Origin: ${name}`);
+}
+
+function setDestination(name, lat, lng) {
+    appState.destination = { name, lat, lng };
+    document.getElementById("destinationInput").value = name;
+    document.getElementById("destinationName").textContent = `Destination: ${name}`;
+    if (lMap) {
+        if (destLMarker) lMap.removeLayer(destLMarker);
+        const icon = L.divIcon({
+            html: '<div style="background:#ef4444; color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:10px; border:2px solid white;">B</div>',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+        destLMarker = L.marker([lat, lng], { icon: icon, draggable: true }).addTo(lMap);
+        destLMarker.on("dragend", (e) => {
+            const p = e.target.getLatLng();
+            setDestination(`Pin (${p.lat.toFixed(3)}, ${p.lng.toFixed(3)})`, p.lat, p.lng);
+            calculateRoute();
+        });
+        lMap.panTo([lat, lng]);
+    }
+    showToast(`Destination: ${name}`);
+}
+
+function detectGPSLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                setOrigin("My GPS Location", pos.coords.latitude, pos.coords.longitude);
+                calculateRoute();
+            },
+            err => {
+                setOrigin("Pune Railway Station", 18.5284, 73.8739);
+            }
+        );
+    }
+}
+
+function calculateRoute() {
+    const origin = appState.origin;
+    const dest = appState.destination;
+    if (!origin || !dest) return;
+
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${dest.lng},${dest.lat}?overview=full&geometries=geojson`;
+
+    fetch(osrmUrl)
+        .then(res => res.json())
+        .then(data => {
+            if (data.routes && data.routes.length > 0) {
+                const r = data.routes[0];
+                appState.distanceKm = (r.distance / 1000).toFixed(1);
+                appState.durationMin = Math.max(2, Math.round(r.duration / 60));
+                routePathCoordinates = r.geometry.coordinates.map(c => [c[1], c[0]]);
+                drawRoutePolyline(routePathCoordinates);
+                updateRouteDisplay(appState.distanceKm, appState.durationMin, 94);
+                showToast(`Route: ${appState.distanceKm} km • ${appState.durationMin} mins`);
+            } else {
+                fallbackRoute();
+            }
+        })
+        .catch(() => fallbackRoute());
+}
+
+function fallbackRoute() {
+    const lat1 = appState.origin.lat, lon1 = appState.origin.lng;
+    const lat2 = appState.destination.lat, lon2 = appState.destination.lng;
+    const roadKm = Math.max(1.5, (6371 * 2 * Math.asin(Math.sqrt(Math.sin((lat2-lat1)*Math.PI/360)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin((lon2-lon1)*Math.PI/360)**2)) * 1.32)).toFixed(1);
+    const estMin = Math.max(3, Math.round(roadKm * 1.8));
+
+    appState.distanceKm = roadKm;
+    appState.durationMin = estMin;
+    routePathCoordinates = [];
+    for (let i = 0; i <= 20; i++) {
+        routePathCoordinates.push([lat1 + (lat2 - lat1) * (i / 20), lon1 + (lon2 - lon1) * (i / 20)]);
+    }
+    drawRoutePolyline(routePathCoordinates);
+    updateRouteDisplay(roadKm, estMin, 94);
+}
+
+function drawRoutePolyline(coords) {
+    if (lMap) {
+        if (routeLPolyline) lMap.removeLayer(routeLPolyline);
+        routeLPolyline = L.polyline(coords, { color: "#1683ff", weight: 6 }).addTo(lMap);
+        lMap.fitBounds(routeLPolyline.getBounds(), { padding: [20, 20] });
+    }
+}
+
+function updateRouteDisplay(dist, duration, score) {
+    document.getElementById("previewDistance").textContent = `${dist} km`;
+    document.getElementById("previewETA").textContent = `${duration} min`;
+    document.getElementById("previewRisk").textContent = `${score}/100`;
+}
+
+function startTrip() {
+    appState.tripStarted = true;
+    appState.remainingDistance = parseFloat(appState.distanceKm) || 18.4;
+    showScreen("activeTripScreen");
+    initActiveMap();
+    startLiveTracking();
+    showToast("🚗 Navigation Active!");
+}
+
+function initActiveMap() {
+    setTimeout(() => {
+        if (activeLMap) activeLMap.remove();
+        activeLMap = L.map("activeMap").setView([appState.origin.lat, appState.origin.lng], 14);
+        L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(activeLMap);
+        plotHazards(activeLMap, activeHazardLMarkers);
+        if (routePathCoordinates.length > 0) {
+            activeLPolyline = L.polyline(routePathCoordinates, { color: "#1683ff", weight: 6 }).addTo(activeLMap);
+            activeLMap.fitBounds(activeLPolyline.getBounds(), { padding: [20, 20] });
+        }
+    }, 200);
+}
+
+function startLiveTracking() {
+    navStepIndex = 0;
+    if (simInterval) clearInterval(simInterval);
+    simInterval = setInterval(() => {
+        if (!appState.tripStarted) return;
+        const speed = (45 + (Math.random() * 8 - 4)).toFixed(1);
+        document.getElementById("liveSpeed").textContent = speed;
+        if (routePathCoordinates.length > 0) {
+            const currentPos = routePathCoordinates[navStepIndex % routePathCoordinates.length];
+            navStepIndex++;
+            if (liveLMarker && activeLMap) activeLMap.removeLayer(liveLMarker);
+            if (activeLMap) {
+                const carIcon = L.divIcon({
+                    html: '<div style="background:#10b981; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:12px; border:2px solid white;">🚗</div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                liveLMarker = L.marker(currentPos, { icon: carIcon }).addTo(activeLMap);
+                activeLMap.panTo(currentPos);
+            }
+        }
+    }, 1800);
+}
+
+function quickReportHazard(type) {
+    showToast(`⚠️ ${type} reported!`);
+    fetch("/api/hazards/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            type: type,
+            latitude: appState.origin.lat,
+            longitude: appState.origin.lng,
+            locationName: "Active Trip",
+            severity: "HIGH",
+            description: `${type} reported by driver`
+        })
+    }).catch(e => {});
+}
+
+function stopTrip() {
+    if (simInterval) clearInterval(simInterval);
+    appState.tripStarted = false;
+    document.getElementById("completedOrigin").textContent = appState.origin ? appState.origin.name : "Starting Point";
+    document.getElementById("completedDestination").textContent = appState.destination ? appState.destination.name : "Destination";
+    document.getElementById("completedDistance").textContent = `${appState.distanceKm} km`;
+    document.getElementById("completedDuration").textContent = `${appState.durationMin} mins`;
+    showScreen("completedScreen");
+}
+
+function newTrip() {
+    showScreen("plannerScreen");
+    setTimeout(() => { if (lMap) lMap.invalidateSize(); }, 200);
+}
+
+function showScreen(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+function showToast(m) {
+    const t = document.getElementById("toast");
+    if (!t) return;
+    t.textContent = m;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2500);
+}
+</script>
+
+</body>
+</html>
