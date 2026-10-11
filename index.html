@@ -32,19 +32,118 @@ button.b{width:100%;padding:11px;border:0;border-radius:12px;background:var(--ac
 #toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:var(--ac);color:var(--ao);padding:9px 16px;border-radius:12px;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:1000;max-width:90vw}#toast.show{opacity:1}
 code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12.5px}td{padding:6px 4px;vertical-align:top;border-bottom:1px solid color-mix(in srgb,var(--tx) 12%,transparent)}
 @media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:42% 1fr}#mapw{order:-1}}
+.field-wrap{position:relative;margin-bottom:8px}
+.field-wrap input{margin-bottom:0}
+.suggest-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid color-mix(in srgb,var(--tx) 20%,transparent);border-radius:12px;max-height:240px;overflow-y:auto;z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,0.18);display:none}
+.suggest-list.open{display:block}
+.sug-item{padding:10px 12px;border-bottom:1px solid color-mix(in srgb,var(--tx) 10%,transparent);cursor:pointer;display:flex;align-items:flex-start;gap:10px;transition:background .15s}
+.sug-item:hover,.sug-item.selected{background:color-mix(in srgb,var(--ac) 15%,var(--card))}
+.sug-item:last-child{border-bottom:0}
+.sug-icon{font-size:16px;line-height:1.2;opacity:.8}
+.sug-title{font-weight:600;font-size:13px;color:var(--tx)}
+.sug-desc{font-size:11.5px;color:var(--mu);margin-top:1px}
+.trip-hud{background:var(--card);border:2px solid var(--ac);border-radius:14px;padding:14px;margin-bottom:12px;display:none}
+.trip-hud.active{display:block}
+.hud-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.hud-card{background:var(--bg);border-radius:10px;padding:10px;text-align:center;border:1px solid color-mix(in srgb,var(--tx) 12%,transparent)}
+.hud-val{font-size:22px;font-weight:800;color:var(--ac)}
+.hud-lbl{font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.alert-pill{background:#fee2e2;color:#991b1b;border:1px solid #f87171;border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;margin-top:8px;display:none}
+.alert-pill.show{display:flex;align-items:center;gap:6px}
+
+/* Uber / Google Maps Style Pulsing Blue Location Dot */
+.user-live-dot{
+  position:relative;
+  width:18px;
+  height:18px;
+  background:#1a73e8;
+  border:3px solid #ffffff;
+  border-radius:50%;
+  box-shadow:0 0 10px rgba(26,115,232,0.8), 0 2px 6px rgba(0,0,0,0.3);
+}
+.user-live-dot::after{
+  content:'';
+  position:absolute;
+  inset:-8px;
+  border-radius:50%;
+  background:rgba(26,115,232,0.35);
+  animation:locPulse 1.8s infinite ease-out;
+  pointer-events:none;
+}
+@keyframes locPulse{
+  0%{transform:scale(0.6);opacity:1}
+  100%{transform:scale(2.2);opacity:0}
+}
+.loc-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:11.5px;
+  font-weight:600;
+  color:#1d6fdc;
+  background:color-mix(in srgb,var(--ac) 12%,transparent);
+  padding:3px 9px;
+  border-radius:99px;
+  cursor:pointer;
+  margin-bottom:8px;
+  border:1px solid color-mix(in srgb,var(--ac) 25%,transparent);
+}
+.loc-badge:hover{background:color-mix(in srgb,var(--ac) 22%,transparent)}
 </style></head><body>
 <header><b>🛣️ SmartMove AI</b><div id="dots"></div></header>
 <main><section id="side">
 <nav id="tabs"><button data-p="plan" class="on">Plan</button><button data-p="rep">Report</button><button data-p="modes">Modes</button><button data-p="set">Settings</button></nav>
 
 <div class="pg on" id="plan">
-<div class="box"><h3>Where to?</h3>
-<div class="row"><input id="from" placeholder="From (city, place)"><button class="b g sm" id="loc" title="Use my location">📍</button></div>
-<input id="to" placeholder="To (city, place)">
+<div class="box">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+  <h3 style="margin:0">Where to?</h3>
+  <span id="quick-live-fill" class="loc-badge" title="Click to use live GPS position as pickup point">📍 Auto-fill Current Location</span>
+</div>
+<div class="row">
+  <div class="field-wrap" style="flex:1">
+    <input id="from" placeholder="From (pickup location / landmark)" autocomplete="off">
+    <div id="from-sug" class="suggest-list"></div>
+  </div>
+  <button class="b g sm" id="loc" title="Center map on my location & use as pickup">📍</button>
+</div>
+<div class="field-wrap">
+  <input id="to" placeholder="To (destination location / landmark)" autocomplete="off">
+  <div id="to-sug" class="suggest-list"></div>
+</div>
 <h3 style="margin-top:4px">Who is travelling? <span class="s">(optional, nothing is stored on a server)</span></h3>
 <div class="row" style="align-items:center"><span class="s">People</span><div class="row"><button class="b g" id="m">−</button><b id="n" style="text-align:center;align-self:center">1</b><button class="b g" id="pl">+</button></div></div>
 <div class="chips" id="pro"></div>
 <button class="b" id="find">Find safest route</button></div>
+
+<div id="trip-hud" class="trip-hud">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <b style="color:var(--tx)">🚘 Live Trip Active</b>
+    <span id="hud-status" class="tag" style="background:#22c55e">ON ROUTE</span>
+  </div>
+  <div class="hud-grid">
+    <div class="hud-card">
+      <div id="hud-rem-dist" class="hud-val">-- km</div>
+      <div class="hud-lbl">Remaining Dist</div>
+    </div>
+    <div class="hud-card">
+      <div id="hud-eta" class="hud-val">-- min</div>
+      <div class="hud-lbl">Estimated ETA</div>
+    </div>
+    <div class="hud-card">
+      <div id="hud-spd" class="hud-val">0 km/h</div>
+      <div class="hud-lbl">Current Speed</div>
+    </div>
+    <div class="hud-card">
+      <div id="hud-covered" class="hud-val">0.0 km</div>
+      <div class="hud-lbl">Covered Dist</div>
+    </div>
+  </div>
+  <div id="hud-alert" class="alert-pill">
+    <span>⚠️</span><span id="hud-alert-msg">Hazard ahead</span>
+  </div>
+</div>
+
 <div id="res"></div><button class="b" id="go" style="display:none">▶ Start trip (voice alerts)</button><p class="s" id="tip" style="margin-top:8px"></p></div>
 
 <div class="pg" id="rep">
@@ -129,7 +228,12 @@ Object.keys(TH).forEach(k=>{const b=document.createElement('button');b.className
 const dist=(a,b)=>{const R=6371e3,r=Math.PI/180,x=(b[0]-a[0])*r,y=(b[1]-a[1])*r,h=Math.sin(x/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(h))};
 function dseg(p,a,b){const k=Math.cos(p[0]*Math.PI/180),f=q=>[q[1]*k*111320,q[0]*110540],P=f(p),X=f(a),Y=f(b),dx=Y[0]-X[0],dy=Y[1]-X[1];let t=((P[0]-X[0])*dx+(P[1]-X[1])*dy)/(dx*dx+dy*dy||1);t=Math.max(0,Math.min(1,t));return Math.hypot(X[0]+t*dx-P[0],X[1]+t*dy-P[1])}
 const mk={line(co,c,sel,fn){let l;if(G){l=new google.maps.Polyline({path:co.map(p=>({lat:p[0],lng:p[1]})),strokeColor:c,strokeWeight:sel?7:4,strokeOpacity:sel?1:.5,map:G,zIndex:sel?2:1});l.addListener('click',fn)}else l=L.polyline(co,{color:c,weight:sel?7:4,opacity:sel?1:.5}).addTo(Lm).on('click',fn);return l},
-pin(p,e,t){return G?new google.maps.Marker({position:{lat:p[0],lng:p[1]},map:G,title:t,label:{text:e,fontSize:'16px'}}):L.marker(p,{title:t,icon:L.divIcon({className:'pin',html:e,iconSize:[26,26]})}).addTo(Lm)},
+pin(p,e,t){
+  if(e==='live-dot'){
+    return Lm?L.marker(p,{title:t,zIndexOffset:1000,icon:L.divIcon({className:'',html:'<div class="user-live-dot"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(Lm):new google.maps.Marker({position:{lat:p[0],lng:p[1]},map:G,title:t});
+  }
+  return G?new google.maps.Marker({position:{lat:p[0],lng:p[1]},map:G,title:t,label:{text:e,fontSize:'16px'}}):L.marker(p,{title:t,icon:L.divIcon({className:'pin',html:e,iconSize:[26,26]})}).addTo(Lm);
+},
 rm(o){G?o.setMap(null):o.remove()},
 fit(co){if(G){const b=new google.maps.LatLngBounds();co.forEach(p=>b.extend({lat:p[0],lng:p[1]}));G.fitBounds(b,40)}else Lm.fitBounds(co,{padding:[30,30]})},
 go(p,z){G?(G.setCenter({lat:p[0],lng:p[1]}),G.setZoom(z)):Lm.setView(p,z)}};
@@ -150,6 +254,56 @@ function setMapLayer(layerKey){
   toast(`Layer switched: ${cfg.attribution}`);
 }
 
+let userLiveDotMarker = null;
+
+// Reverse Geocoding to get human-readable landmark name for GPS coordinates
+async function reverseGeocode(lat, lng){
+  try{
+    const r = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)).json();
+    if(r && r.display_name){
+      const parts = (r.display_name || '').split(',');
+      return parts.slice(0, 3).join(',').trim();
+    }
+  }catch(e){}
+  return `Current Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+}
+
+function updateLiveLocationMarker(latLng){
+  if(userLiveDotMarker) mk.rm(userLiveDotMarker);
+  userLiveDotMarker = mk.pin(latLng, 'live-dot', 'You are here');
+}
+
+async function locate(fill){
+  if(!navigator.geolocation){
+    return toast('Geolocation not supported by browser');
+  }
+  navigator.geolocation.getCurrentPosition(async p=>{
+    me = [p.coords.latitude, p.coords.longitude];
+    updateLiveLocationMarker(me);
+    mk.go(me, 15);
+    if(fill){
+      A = me;
+      placeCoords.from = me;
+      toast('Finding your landmark name...');
+      const landmark = await reverseGeocode(me[0], me[1]);
+      $('from').value = landmark;
+      toast('📍 Pickup point set to your location');
+    }
+  }, (err)=>{
+    if(fill) toast('Please allow GPS access in browser permissions');
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+}
+
+// Background watch for live location updates (like Google Maps & Ola/Uber)
+function startLiveAmbientTracking(){
+  if(!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(p=>{
+    me = [p.coords.latitude, p.coords.longitude];
+    spd = p.coords.speed || 0;
+    updateLiveLocationMarker(me);
+  }, ()=>{}, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+}
+
 function boot(){const c=[18.5204,73.8567]; // Center Pune default
 if(window.google&&google.maps&&CFG.gkey){
   G=new google.maps.Map($('map'),{center:{lat:c[0],lng:c[1]},zoom:13,disableDefaultUI:false,zoomControl:true,clickableIcons:true});
@@ -161,31 +315,407 @@ else{
   setMapLayer(CFG.layer || 'google_roadmap');
   Lm.on('click',e=>mclick(e.latlng.lat,e.latlng.lng));
 }
-theme(S('th','white'));renderHz();locate(false)}
+theme(S('th','white'));renderHz();initPlacesService();
+// Automatically detect GPS on map load & display live pulsing dot
+locate(false);
+startLiveAmbientTracking();
+}
 
 window.gm_authFailure=()=>{toast('Google API key requires billing. Loading Google Maps Layer...');CFG.gkey='';W('cfg',CFG);setTimeout(()=>location.reload(),1000)};
-if(CFG.gkey){const s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+CFG.gkey+'&callback=boot';s.onerror=boot;document.head.appendChild(s)}else boot();
+if(CFG.gkey){const s=document.createElement('script');s.src='https://maps.googleapis.com/maps/api/js?key='+CFG.gkey+'&libraries=places&callback=boot';s.onerror=boot;document.head.appendChild(s)}else boot();
 
-function locate(fill){navigator.geolocation?.getCurrentPosition(p=>{me=[p.coords.latitude,p.coords.longitude];mk.go(me,14);if(fill){A=me;$('from').value='My location'}},()=>fill&&toast('Allow location access, or type a place'),{enableHighAccuracy:true})}
 $('loc').onclick=()=>locate(true);
+$('quick-live-fill').onclick=()=>locate(true);
 function mclick(a,b){if(pick){pend.loc=[a,b];pick=false;$('rl').textContent=`Location: ${a.toFixed(5)}, ${b.toFixed(5)}`;toast('Location picked')}}
-async function geo(id,cur){const v=$(id).value.trim();if(id==='from'&&(v==='My location'||!v)&&(cur||me))return cur||me;if(!v)throw Error('Enter '+id);const r=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(v))).json();if(!r[0])throw Error('Place not found: '+v);return[+r[0].lat,+r[0].lon]}
+
+// Places Autocomplete Engine (Google Places API + Photon / Nominatim Hybrid)
+let placesService = null;
+let sessionToken = null;
+let placeCoords = { from: null, to: null };
+
+function initPlacesService(){
+  if(window.google && google.maps && google.maps.places){
+    placesService = new google.maps.places.AutocompleteService();
+    sessionToken = new google.maps.places.AutocompleteSessionToken();
+  }
+}
+
+async function fetchPlaceSuggestions(query, type){
+  const cleanQ = query.trim();
+  if(!cleanQ || cleanQ.length < 2) return [];
+
+  // If Google Maps API is loaded & active
+  if(placesService && CFG.gkey){
+    return new Promise((resolve)=>{
+      placesService.getPlacePredictions({
+        input: cleanQ,
+        sessionToken: sessionToken,
+        componentRestrictions: { country: 'in' }
+      }, (predictions, status)=>{
+        if(status === google.maps.places.PlacesServiceStatus.OK && predictions){
+          resolve(predictions.map(p=>({
+            title: p.structured_formatting ? p.structured_formatting.main_text : p.description,
+            subtitle: p.structured_formatting ? p.structured_formatting.secondary_text : '',
+            place_id: p.place_id,
+            source: 'google'
+          })));
+        } else {
+          resolve(fetchPhotonSuggestions(cleanQ));
+        }
+      });
+    });
+  }
+
+  // Fallback / High-speed open suggestion engine (Photon / OpenStreetMap API)
+  return fetchPhotonSuggestions(cleanQ);
+}
+
+async function fetchPhotonSuggestions(query){
+  try{
+    const bias = me ? `&lat=${me[0]}&lon=${me[1]}` : '&lat=18.5204&lon=73.8567';
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=6${bias}`);
+    const data = await res.json();
+    return (data.features || []).map(f=>{
+      const p = f.properties;
+      const subtitle = [p.street, p.district, p.city, p.state].filter(Boolean).join(', ');
+      return {
+        title: p.name || query,
+        subtitle: subtitle || p.country || '',
+        coords: [f.geometry.coordinates[1], f.geometry.coordinates[0]],
+        source: 'photon'
+      };
+    });
+  }catch(e){
+    return [];
+  }
+}
+
+async function resolvePlaceCoordinates(item){
+  if(item.coords) return item.coords;
+  if(item.place_id && window.google && google.maps){
+    return new Promise((resolve, reject)=>{
+      const dummyEl = document.createElement('div');
+      const service = new google.maps.places.PlacesService(dummyEl);
+      service.getDetails({ placeId: item.place_id, fields: ['geometry'] }, (res, status)=>{
+        if(status === google.maps.places.PlacesServiceStatus.OK && res.geometry){
+          resolve([res.geometry.location.lat(), res.geometry.location.lng()]);
+        } else {
+          reject(new Error('Could not get place details'));
+        }
+      });
+    });
+  }
+  return geoText(item.title + ' ' + item.subtitle);
+}
+
+function setupAutocomplete(inputId, dropdownId, type){
+  const inp = $(inputId), drop = $(dropdownId);
+  let debounceTimer;
+
+  // Show "Use current location" instantly on click/focus (Uber/Google Maps style)
+  inp.addEventListener('focus', ()=>{
+    if(type === 'from' && !inp.value.trim()){
+      renderCurrentLocationOption();
+    }
+  });
+
+  function renderCurrentLocationOption(){
+    drop.innerHTML = `
+      <div class="sug-item current-loc-item" style="background:color-mix(in srgb,var(--ac) 8%,var(--card));border-bottom:2px solid color-mix(in srgb,var(--ac) 20%,transparent)">
+        <span class="sug-icon" style="color:var(--ac)">📍</span>
+        <div>
+          <div class="sug-title" style="color:var(--ac);font-weight:700">Your Current Location</div>
+          <div class="sug-desc">${me ? 'Tap to use live GPS position as pickup' : 'Tap to fetch live GPS coordinates'}</div>
+        </div>
+      </div>
+    `;
+    drop.classList.add('open');
+    const locItem = drop.querySelector('.current-loc-item');
+    if(locItem){
+      locItem.onclick = ()=>{
+        drop.classList.remove('open');
+        locate(true);
+      };
+    }
+  }
+
+  inp.addEventListener('input', ()=>{
+    clearTimeout(debounceTimer);
+    const val = inp.value.trim();
+    if(val.length < 2){
+      if(type === 'from') renderCurrentLocationOption();
+      else {
+        drop.innerHTML = '';
+        drop.classList.remove('open');
+      }
+      return;
+    }
+    debounceTimer = setTimeout(async ()=>{
+      const results = await fetchPlaceSuggestions(val, type);
+      
+      let html = '';
+      if(type === 'from'){
+        html += `
+          <div class="sug-item current-loc-item" style="background:color-mix(in srgb,var(--ac) 8%,var(--card));border-bottom:2px solid color-mix(in srgb,var(--ac) 20%,transparent)">
+            <span class="sug-icon" style="color:var(--ac)">📍</span>
+            <div>
+              <div class="sug-title" style="color:var(--ac);font-weight:700">Your Current Location</div>
+              <div class="sug-desc">Tap to use live GPS position as pickup</div>
+            </div>
+          </div>
+        `;
+      }
+
+      if(!results || !results.length){
+        if(type !== 'from'){
+          drop.innerHTML = '<div class="sug-item"><div class="sug-title">No suggestions found</div></div>';
+        } else {
+          drop.innerHTML = html;
+        }
+        drop.classList.add('open');
+        attachClickListeners(results || []);
+        return;
+      }
+
+      html += results.map((r, i)=>`
+        <div class="sug-item place-item" data-idx="${i}">
+          <span class="sug-icon">🏢</span>
+          <div>
+            <div class="sug-title">${r.title}</div>
+            <div class="sug-desc">${r.subtitle}</div>
+          </div>
+        </div>
+      `).join('');
+
+      drop.innerHTML = html;
+      drop.classList.add('open');
+      attachClickListeners(results);
+    }, 280);
+  });
+
+  function attachClickListeners(results){
+    const locItem = drop.querySelector('.current-loc-item');
+    if(locItem){
+      locItem.onclick = ()=>{
+        drop.classList.remove('open');
+        locate(true);
+      };
+    }
+
+    drop.querySelectorAll('.place-item').forEach(el=>{
+      el.onclick = async ()=>{
+        const selected = results[+el.dataset.idx];
+        inp.value = selected.title + (selected.subtitle ? ` — ${selected.subtitle}` : '');
+        drop.classList.remove('open');
+        try{
+          toast('Fetching coordinates...');
+          const coords = await resolvePlaceCoordinates(selected);
+          placeCoords[type] = coords;
+          if(type === 'from') A = coords;
+          if(type === 'to') B = coords;
+          mk.go(coords, 14);
+          mk.pin(coords, type === 'from' ? '🟢' : '🏁', selected.title);
+          toast(`${type === 'from' ? 'Pickup' : 'Destination'} selected`);
+        }catch(err){
+          toast('Location selection error: ' + err.message);
+        }
+      };
+    });
+  }
+
+  document.addEventListener('click', (e)=>{
+    if(!inp.contains(e.target) && !drop.contains(e.target)){
+      drop.classList.remove('open');
+    }
+  });
+}
+
+setupAutocomplete('from', 'from-sug', 'from');
+setupAutocomplete('to', 'to-sug', 'to');
+
+async function geoText(txt){
+  const r=await(await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(txt))).json();
+  if(!r[0])throw Error('Place not found: '+txt);
+  return[+r[0].lat,+r[0].lon];
+}
+
+async function geo(id,cur){
+  const v=$(id).value.trim();
+  if(id==='from'&&(v==='My current location'||v==='My location'||!v)&&(cur||me))return cur||me;
+  if(id==='from' && placeCoords.from) return placeCoords.from;
+  if(id==='to' && placeCoords.to) return placeCoords.to;
+  if(!v)throw Error('Enter '+id);
+  return geoText(v);
+}
+
+// ---------------------------------------------------------------------------
+// Route Along-Track Projection & Live Remaining Distance Calculation
+// ---------------------------------------------------------------------------
+function calculateRemainingOnRoute(curPos, polyline){
+  if(!polyline || polyline.length < 2) return { remainingMeters: 0, progressMeters: 0, offRouteDist: 0 };
+  
+  // Calculate total route length and segment cumulative distances
+  let segDists = [];
+  let totalLength = 0;
+  for(let i=0; i<polyline.length-1; i++){
+    const d = dist(polyline[i], polyline[i+1]);
+    segDists.push(d);
+    totalLength += d;
+  }
+
+  // Find closest projection point along the route
+  let minDist = Infinity;
+  let bestSegIndex = 0;
+  let bestT = 0;
+
+  for(let i=0; i<polyline.length-1; i++){
+    const a = polyline[i], b = polyline[i+1];
+    const k=Math.cos(curPos[0]*Math.PI/180);
+    const P=[curPos[1]*k*111320, curPos[0]*110540];
+    const X=[a[1]*k*111320, a[0]*110540];
+    const Y=[b[1]*k*111320, b[0]*110540];
+    const dx=Y[0]-X[0], dy=Y[1]-X[1];
+    let t=((P[0]-X[0])*dx+(P[1]-X[1])*dy)/(dx*dx+dy*dy||1);
+    t=Math.max(0,Math.min(1,t));
+    const perpDist = Math.hypot(X[0]+t*dx-P[0], X[1]+t*dy-P[1]);
+    if(perpDist < minDist){
+      minDist = perpDist;
+      bestSegIndex = i;
+      bestT = t;
+    }
+  }
+
+  // Calculate distance travelled along route
+  let coveredAlongRoute = 0;
+  for(let i=0; i<bestSegIndex; i++){
+    coveredAlongRoute += segDists[i];
+  }
+  coveredAlongRoute += (segDists[bestSegIndex] || 0) * bestT;
+  const remainingMeters = Math.max(0, totalLength - coveredAlongRoute);
+
+  return {
+    totalLength,
+    remainingMeters,
+    coveredAlongRoute,
+    offRouteDist: minDist
+  };
+}
+
+let tripLiveInterval = null;
+let tripStartCoords = null;
+let userLiveMarker = null;
+
+function updateTripHUD(curPos, curSpd){
+  if(!RT[SEL]) return;
+  const metrics = calculateRemainingOnRoute(curPos, RT[SEL].co);
+  const remKm = (metrics.remainingMeters / 1000).toFixed(1);
+  const coveredKm = (metrics.coveredAlongRoute / 1000).toFixed(1);
+  
+  $('hud-rem-dist').textContent = `${remKm} km`;
+  $('hud-covered').textContent = `${coveredKm} km`;
+  
+  const speedKmh = Math.round((curSpd || 0) * 3.6);
+  $('hud-spd').textContent = `${speedKmh} km/h`;
+
+  // Dynamic ETA
+  const speedForEta = speedKmh > 10 ? speedKmh : 35; // default 35 km/h urban speed fallback
+  const etaMins = Math.max(1, Math.round((metrics.remainingMeters / 1000) / speedForEta * 60));
+  $('hud-eta').textContent = `${etaMins} min`;
+
+  // Route Deviation Check
+  const statusEl = $('hud-status');
+  if(metrics.offRouteDist > 120){
+    statusEl.textContent = 'OFF ROUTE';
+    statusEl.style.background = '#ef4444';
+  } else {
+    statusEl.textContent = 'ON ROUTE';
+    statusEl.style.background = '#22c55e';
+  }
+
+  // Check upcoming hazards along the remaining route
+  const alertEl = $('hud-alert');
+  const alertMsg = $('hud-alert-msg');
+  let upcoming = null;
+  let minHzDist = Infinity;
+
+  (RT[SEL].hz?.list || []).forEach(h=>{
+    const d = dist(curPos, [h.lat, h.lng]);
+    if(d < 400 && d < minHzDist){
+      minHzDist = d;
+      upcoming = { h, d };
+    }
+  });
+
+  if(upcoming){
+    alertEl.classList.add('show');
+    alertMsg.textContent = `${TY[upcoming.h.type][1]} ahead in ${Math.round(upcoming.d)} m. Drive with caution!`;
+  } else {
+    alertEl.classList.remove('show');
+  }
+}
 async function weather(p){const h=new Date().getHours();try{const c=(await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p[0]}&longitude=${p[1]}&current=precipitation,weather_code,visibility,is_day`)).json()).current,s=Math.min(100,c.precipitation*35+([45,48].includes(c.weather_code)?50:0)+(c.weather_code>=95?60:0)+(c.visibility<2000?30:0));return{s,night:!c.is_day,txt:c.precipitation>0?`Rain ${c.precipitation} mm`:c.visibility<2000?'Low visibility':s>40?'Bad weather':'Weather clear'}}catch{return{s:0,night:h>=19||h<6,txt:'Weather unavailable'}}}
 function weights(){const p=PRO;if(p.has('ambulance'))return{hz:.15,wx:.1,time:.05,turn:.1,dur:.6};if(['pregnant','fracture','weak'].some(x=>p.has(x)))return{hz:.5,wx:.2,time:.1,turn:.15,dur:.05};if(p.has('elderly')||p.has('child'))return{hz:.3,wx:.25,time:.25,turn:.1,dur:.1};return{hz:.3,wx:.2,time:.15,turn:.15,dur:.2}}
 function nearHz(co){let w=0,list=[];HZ.forEach(h=>{for(let i=0;i<co.length-1;i++)if(dseg([h.lat,h.lng],co[i],co[i+1])<35){list.push(h);w+=h.devs.length>=3?1:.6;break}});return{n:list.length,w,list}}
 const col=s=>s<35?'#22c55e':s<60?'#f59e0b':'#ef4444';
+function getTrafficAwareDuration(rawSec, km, turns){
+  // Open routing APIs return ideal highway free-flow speeds (~55-65 km/h).
+  // Real Indian urban/semi-urban traffic average speed is 24-32 km/h + 25s per turn/signal intersection.
+  const urbanSpeedKmh = km < 25 ? 28 : 36;
+  const turnPenaltySec = (turns || 8) * 22; // intersection/turn wait time
+  const realisticMinutes = Math.round((km / urbanSpeedKmh * 60) + (turnPenaltySec / 60));
+  const apiEstimatedMinutes = Math.round(rawSec / 60);
+  return Math.max(apiEstimatedMinutes, realisticMinutes);
+}
+
 async function plan(){const bt=$('find');bt.textContent='Finding...';try{A=await geo('from',A);B=await geo('to');
 const j=await(await fetch(`https://router.project-osrm.org/route/v1/driving/${A[1]},${A[0]};${B[1]},${B[0]}?alternatives=3&overview=full&geometries=geojson&steps=true`)).json();if(!j.routes?.length)throw Error('No road route found');
 const wx=await weather(A),fast=Math.min(...j.routes.map(r=>r.duration)),w=weights(),ws=Object.values(w).reduce((a,b)=>a+b);
-RT=j.routes.map(r=>{const co=r.geometry.coordinates.map(c=>[c[1],c[0]]),hz=nearHz(co),km=r.distance/1000,turns=r.legs[0].steps.length,extra=Math.round((r.duration-fast)/60),
-f={hz:Math.min(100,hz.w*30),wx:wx.s,time:wx.night?70:10,turn:Math.min(100,turns/Math.max(km,1)*8),dur:Math.min(100,(r.duration/fast-1)*250)},sc=Math.round(Object.keys(w).reduce((a,k)=>a+f[k]*w[k],0)/ws),why=[];
-why.push(hz.n?`${hz.n} reported hazard${hz.n>1?'s':''} on this road`:'No reported hazards');why.push(wx.txt);if(wx.night)why.push('Night driving');why.push(`${turns} turns`);if(extra>0)why.push(`${extra} min slower than fastest`);return{co,sc,km,min:Math.round(r.duration/60),hz,why}});
+RT=j.routes.map(r=>{
+  const co=r.geometry.coordinates.map(c=>[c[1],c[0]]);
+  const hz=nearHz(co);
+  const km=r.distance/1000;
+  const turns=r.legs[0].steps.length;
+  const realisticMin = getTrafficAwareDuration(r.duration, km, turns);
+  const extra=Math.round((r.duration-fast)/60);
+  const f={hz:Math.min(100,hz.w*30),wx:wx.s,time:wx.night?70:10,turn:Math.min(100,turns/Math.max(km,1)*8),dur:Math.min(100,(r.duration/fast-1)*250)};
+  const sc=Math.round(Object.keys(w).reduce((a,k)=>a+f[k]*w[k],0)/ws);
+  const why=[];
+  why.push(hz.n?`⚠️ ${hz.n} reported hazard${hz.n>1?'s':''} (potholes/bumps) on this route`:'✅ 0 reported road hazards');
+  why.push(`🌤️ ${wx.txt}`);
+  if(wx.night) why.push('🌙 Night driving: low illumination alert');
+  why.push(`🔄 ${turns} turns & intersections`);
+  why.push(`🚗 Realistic city traffic ETA: ~${realisticMin} min`);
+  return { co, sc, km, min: realisticMin, hz, why, turns };
+});
 SEL=RT.reduce((b,r,i)=>r.sc<RT[b].sc?i:b,0);draw();$('go').style.display='block';tip()}catch(e){toast(e.message)}bt.textContent='Find safest route'}
+
+function showRouteDetails(idx){
+  const r = RT[idx];
+  if(!r) return;
+  const riskCategory = r.sc < 30 ? 'Low Risk (Very Safe)' : r.sc < 60 ? 'Moderate Risk' : 'High Risk';
+  alert(`🛣️ Route Details:\n\n• Estimated Travel Time: ~${r.min} min (Traffic-adjusted)\n• Distance: ${r.km.toFixed(1)} km\n• SMARTMOVE Road Risk Score: ${r.sc}/100 [${riskCategory}]\n  (Lower score = Safer road, fewer bumps & accidents)\n• Hazards: ${r.hz.n} reported on this stretch\n• Intersections/Turns: ${r.turns}\n\n🎙️ Voice Alerts: While driving, your phone will speak aloud (e.g. "Pothole ahead in 300 meters, slow down") so you don't have to look at the screen.`);
+}
+
 function draw(){MP.r.forEach(mk.rm);MP.p.forEach(mk.rm);MP.r=[];MP.p=[];
 RT.forEach((r,i)=>i!==SEL&&MP.r.push(mk.line(r.co,col(r.sc),0,()=>{SEL=i;draw()})));MP.r.push(mk.line(RT[SEL].co,col(RT[SEL].sc),1,()=>{}));
-MP.p.push(mk.pin(A,'🟢','Start'),mk.pin(B,'🏁','Destination'));mk.fit(RT[SEL].co);
+MP.p.push(mk.pin(A,'🟢','Start: Pickup Point'),mk.pin(B,'🏁','Destination Point'));mk.fit(RT[SEL].co);
 const best=RT.reduce((b,r,i)=>r.sc<RT[b].sc?i:b,0);
-$('res').innerHTML=RT.map((r,i)=>`<div class="box rt ${i===SEL?'on':''}" data-i="${i}"><div class="h"><div><b>${r.min} min · ${r.km.toFixed(1)} km</b>${i===best?'<span class="tag">Safest</span>':''}</div><span class="sc" style="background:${col(r.sc)}">${r.sc}</span></div><ul>${r.why.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('');
+$('res').innerHTML=RT.map((r,i)=>`
+  <div class="box rt ${i===SEL?'on':''}" data-i="${i}" title="Click to select this route & view detailed safety breakdown">
+    <div class="h">
+      <div>
+        <b style="font-size:15px">${r.min} min · ${r.km.toFixed(1)} km</b>
+        ${i===best?'<span class="tag" style="background:#16a34a">Safest Route</span>':''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="sc" style="background:${col(r.sc)}" title="Risk Score: ${r.sc}/100. Lower is safer!">${r.sc}</span>
+        <button class="b g" style="padding:2px 7px;font-size:11px;border-radius:6px;cursor:pointer" onclick="event.stopPropagation();showRouteDetails(${i})" title="What does this mean?">ℹ️ Info</button>
+      </div>
+    </div>
+    <div style="font-size:11.5px;color:var(--mu);margin-top:2px">Risk Index: <b>${r.sc < 30 ? 'Low (Safe Road)' : r.sc < 60 ? 'Moderate' : 'Caution'}</b> (${r.sc}/100)</div>
+    <ul>${r.why.map(x=>`<li>${x}</li>`).join('')}</ul>
+  </div>
+`).join('');
 Q('.rt').forEach(e=>e.onclick=()=>{SEL=+e.dataset.i;draw()})}
 function tip(){const p=PRO,t=p.has('ambulance')?'Ambulance mode: fastest road gets the most weight.':['pregnant','fracture','weak'].some(x=>p.has(x))?'Gentle mode: potholes and speed breakers count double. Drive slowly over bumps.':p.has('child')||p.has('elderly')?'Family mode: night driving and bad weather count more.':'Balanced mode. Select travellers above if anyone needs extra care.';$('tip').textContent=t}
 $('find').onclick=plan;$('m').onclick=()=>{N=Math.max(1,N-1);W('n',N);$('n').textContent=N};$('pl').onclick=()=>{N=Math.min(12,N+1);W('n',N);$('n').textContent=N};$('n').textContent=N;
@@ -212,9 +742,25 @@ $('kp').onclick=()=>{$('cam').dataset.keep=1;$('cam').className='mini';toast('Ca
 function say(t){try{speechSynthesis.speak(new SpeechSynthesisUtterance(t))}catch{}}
 async function startSense(){if(!('DeviceMotionEvent'in window))return toast('No motion sensor here. Use Manual or Camera mode.');try{if(DeviceMotionEvent.requestPermission&&await DeviceMotionEvent.requestPermission()!=='granted')return toast('Motion permission denied')}catch{}window.addEventListener('devicemotion',onMo);toast('Auto-detect ON')}
 function onMo(e){const lin=e.acceleration&&e.acceleration.z!=null,z=Math.abs((lin?e.acceleration:e.accelerationIncludingGravity||{}).z||0)-(lin?0:9.8);if(spd<4.2||z<12||Date.now()-last<2500||!me)return;last=Date.now();addHz({type:'pothole',src:'sensor',mag:+z.toFixed(1),photo:grab()})}
-$('go').onclick=()=>{if(WID!=null){navigator.geolocation.clearWatch(WID);WID=null;window.removeEventListener('devicemotion',onMo);$('go').textContent='▶ Start trip (voice alerts)';return}
-WID=navigator.geolocation.watchPosition(p=>{me=[p.coords.latitude,p.coords.longitude];spd=p.coords.speed||0;mk.go(me,16);(RT[SEL]?RT[SEL].hz.list:[]).forEach(h=>{const d=dist(me,[h.lat,h.lng]);if(!said[h.id]&&d<300){said[h.id]=1;say(`${TY[h.type][1]} ahead in ${Math.round(d)} meters. Slow down.`)}})},e=>toast('GPS: '+e.message),{enableHighAccuracy:true});
-startSense();navigator.wakeLock?.request('screen').catch(()=>{});$('go').textContent='■ Stop trip'};
+$('go').onclick=()=>{if(WID!=null){navigator.geolocation.clearWatch(WID);WID=null;window.removeEventListener('devicemotion',onMo);$('go').textContent='▶ Start trip (voice alerts)';$('trip-hud').classList.remove('active');if(userLiveMarker){mk.rm(userLiveMarker);userLiveMarker=null}return}
+$('trip-hud').classList.add('active');
+WID=navigator.geolocation.watchPosition(p=>{
+  me=[p.coords.latitude,p.coords.longitude];
+  spd=p.coords.speed||0;
+  if(!userLiveMarker) userLiveMarker=mk.pin(me,'🚙','My Location');
+  else { mk.rm(userLiveMarker); userLiveMarker=mk.pin(me,'🚙','My Location'); }
+  mk.go(me,16);
+  updateTripHUD(me, spd);
+  (RT[SEL]?RT[SEL].hz.list:[]).forEach(h=>{
+    const d=dist(me,[h.lat,h.lng]);
+    if(!said[h.id]&&d<300){
+      said[h.id]=1;
+      say(`${TY[h.type][1]} ahead in ${Math.round(d)} meters. Slow down.`);
+    }
+  });
+},e=>toast('GPS: '+e.message),{enableHighAccuracy:true,maximumAge:1000,timeout:10000});
+startSense();navigator.wakeLock?.request('screen').catch(()=>{});$('go').textContent='■ End trip';toast('Trip started! Live remaining distance active.');
+};
 $('gk').value=CFG.gkey;$('ap').value=CFG.api;$('ml').value=CFG.mail;
 if($('map-layer-select')) $('map-layer-select').value=CFG.layer||'google_roadmap';
 if($('quick-layer')) $('quick-layer').value=CFG.layer||'google_roadmap';
